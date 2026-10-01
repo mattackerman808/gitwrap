@@ -8,13 +8,56 @@ For a file-by-file walkthrough of the code and the reasoning behind it, see
 
 ## Install & run
 
-Requires Python 3.10+ and git.
+Requires Python 3.10+ and git. Run these from the repository root, one block
+at a time. The commands call the virtualenv's programs by path, so nothing
+needs to be activated first.
+
+**1. Create a virtualenv.** Skip this if `.venv` already exists (for example,
+an IDE created it), because a venv can't recreate itself while in use.
+
+macOS / Linux:
 
 ```bash
-python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
-pip install -e ".[test]"
-gitwrap --help
+python3 -m venv .venv
 ```
+
+Windows:
+
+```powershell
+python -m venv .venv
+```
+
+**2. Install gitwrap and the test tools into it.**
+
+macOS / Linux:
+
+```bash
+.venv/bin/pip install -e ".[test]"
+```
+
+Windows:
+
+```powershell
+.venv\Scripts\pip install -e ".[test]"
+```
+
+**3. Check that it runs.**
+
+macOS / Linux:
+
+```bash
+.venv/bin/gitwrap --help
+```
+
+Windows:
+
+```powershell
+.venv\Scripts\gitwrap --help
+```
+
+To type just `gitwrap` and `pytest`, as in the rest of this README, activate
+the venv in your shell: `source .venv/bin/activate` on macOS / Linux,
+`.venv\Scripts\activate` on Windows.
 
 ## Usage
 
@@ -64,14 +107,21 @@ or `gitwrap clean --dry-run`).
 `scripts/demo-repo.sh` builds a throwaway repository next to this one
 (`../gitwrap-demo`) with staged, unstaged and untracked files, awkward file
 names, an ignored file and a nested repository. Run it again to rebuild the
-repo after a `gitwrap clean`.
+repo after a `gitwrap clean`. The script needs bash; on Windows, use Git
+Bash.
 
-```bash
-scripts/demo-repo.sh && cd ../gitwrap-demo
-gitwrap status
-gitwrap clean --dry-run
-gitwrap clean
+In a terminal with the venv activated:
+
+```console
+$ scripts/demo-repo.sh
+$ cd ../gitwrap-demo
+$ gitwrap status
+$ gitwrap clean --dry-run
+$ gitwrap clean
 ```
+
+Run `gitwrap clean` from a real terminal. In an IDE's run window stdin is not
+a terminal, so `clean` refuses to delete without `--yes`, as designed.
 
 ## Tests
 
@@ -91,9 +141,12 @@ against the oldest and newest supported Python on every push and pull request.
 
 1. Bump `__version__` in `src/gitwrap/__init__.py` (the only place the
    version lives) and commit.
-2. Tag and push:
+2. Tag the release, then push the tag:
    ```bash
-   git tag v0.2.0 && git push origin v0.2.0
+   git tag v0.2.0
+   ```
+   ```bash
+   git push origin v0.2.0
    ```
 3. `.github/workflows/release.yml` re-runs the full test matrix, checks that the
    tag matches `__version__`, builds `gitwrap-v0.2.0.zip` plus a SHA-256

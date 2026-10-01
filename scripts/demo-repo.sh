@@ -58,9 +58,13 @@ echo "x" > "ünïcödé.txt"
 # Ignored: gitwrap clean must leave it alone.
 echo "hunter2" > api.secret
 
-# Nested repository: git status shows it, git clean -d will not delete it.
-mkdir -p vendor/lib
+# Nested repositories: git status shows them, git clean -d will not delete
+# them. git names the inner one (vendor/lib) but skips the top-level one
+# (scratch) silently; gitwrap reports both under skipped_repositories.
+mkdir -p vendor/lib scratch
 git -C vendor/lib init -q
 echo "keep me" > vendor/lib/important.txt
+git -C scratch init -q
+echo "keep me too" > scratch/wip.txt
 
 echo "demo repo ready: $(pwd)"

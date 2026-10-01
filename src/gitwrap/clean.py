@@ -8,11 +8,14 @@
             delete is therefore never removed by surprise.
 """
 
+import os
 from dataclasses import dataclass, field
 
 from gitwrap.git import decode, run_git
 
 PREVIEW_ARGS = ["clean", "-n", "-d"]
+# Untracked, non-ignored entries in cwd; a directory is listed once as `dir/`.
+UNTRACKED_DIRS_ARGS = ["ls-files", "--others", "--exclude-standard", "--directory", "-z"]
 _REMOVE_PREFIX = "Would remove "
 # Printed for a nested repository inside an untracked directory. git keeps it
 # (and the directories containing it); we report it but never delete it.
@@ -32,7 +35,27 @@ class CleanPlan:
 
 def plan_clean(cwd=None):
     """Return what `git clean -fd` would do, with paths relative to cwd."""
-    return parse_clean_preview(decode(run_git(PREVIEW_ARGS, cwd)))
+    plan = parse_clean_preview(decode(run_git(PREVIEW_ARGS, cwd)))
+    for repo in find_untracked_repos(cwd):
+        if repo not in plan.skipped_repos and repo + "/" not in plan.remove:
+            plan.skipped_repos.append(repo)
+    plan.skipped_repos.sort()
+    return plan
+
+
+def find_untracked_repos(cwd=None):
+    """Untracked top-level directories that are themselves git repositories.
+
+    `git clean -n` names a nested repo only when it finds one *inside* an
+    untracked directory; one sitting directly in an untracked position is
+    skipped without a message. This finds those so they can be reported too.
+    It only affects reporting: what gets deleted still comes from git alone.
+    """
+    base = cwd or "."
+    entries = decode(run_git(UNTRACKED_DIRS_ARGS, cwd)).split("\0")
+    return [entry.rstrip("/") for entry in entries
+            if entry.endswith("/") and entry != "./"
+            and os.path.exists(os.path.join(base, entry, ".git"))]
 
 
 def parse_clean_preview(text):

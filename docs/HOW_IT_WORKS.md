@@ -274,6 +274,30 @@ first version only knew `Would remove`, and running it on the demo repository
 stopped with "unexpected `git clean -n` output" instead of doing something
 wrong.
 
+### `find_untracked_repos()`: reporting the repos git skips silently
+
+git only prints `Would skip repository` when it finds a nested repo *inside*
+an untracked directory. A nested repo sitting directly in an untracked
+position (e.g. `scratch/` at the top) is skipped without any message:
+
+```
+$ git clean -n -d
+Would skip repository vendor/lib      ← reported
+Would remove vendor/other.txt         ← scratch/ is not mentioned at all
+```
+
+To report both, `plan_clean()` also runs
+`git ls-files --others --exclude-standard --directory -z`, which lists each
+untracked top-level directory once (`scratch/`, `vendor/`) and leaves out
+ignored ones, matching what `git clean` considers. Any listed directory that
+contains a `.git` entry (a directory, or a file for worktrees and submodules)
+is added to `skipped_repos`.
+
+This only changes what is **reported**. The list of paths to delete still
+comes entirely from `git clean -n`, so if the check were ever wrong, the
+result would be a missing or extra line in the report, never a wrong
+deletion.
+
 ### `unquote_c_style()`
 
 When a file name contains unusual characters, git prints it in quotes with

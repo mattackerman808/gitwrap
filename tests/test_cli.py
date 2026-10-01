@@ -118,8 +118,29 @@ def test_clean_skips_nested_repositories(repo, run):
     nested.mkdir()
     git("-C", str(nested), "init", "-q")
     make_untracked(repo, "vendor/important.txt", "stray.txt")
-    assert yaml.safe_load(run("clean", "--yes")[1])["files"] == ["stray.txt"]
+    code, out, _ = run("clean", "--yes")
+    assert code == 0
+    # git skips this one silently; gitwrap still reports it.
+    assert yaml.safe_load(out) == {"action": "clean", "files": ["stray.txt"],
+                                   "skipped_repositories": ["vendor"]}
     assert (nested / "important.txt").exists()
+
+
+def test_clean_reports_top_level_and_inner_nested_repos_together(repo, run):
+    for path in ("top", "vendor/lib"):
+        (repo / path).mkdir(parents=True)
+        git("-C", str(repo / path), "init", "-q")
+    make_untracked(repo, "top/a.txt", "vendor/lib/b.txt", "vendor/other.txt")
+    data = yaml.safe_load(run("clean", "--dry-run")[1])
+    assert data["files"] == ["vendor/other.txt"]
+    assert data["skipped_repositories"] == ["top", "vendor/lib"]
+
+
+def test_ignored_nested_repo_is_not_reported(repo, run):
+    (repo / ".gitignore").write_text("cache/\n")
+    (repo / "cache").mkdir()
+    git("-C", str(repo / "cache"), "init", "-q")
+    assert "skipped_repositories" not in yaml.safe_load(run("clean", "--dry-run")[1])
 
 
 def test_clean_reports_nested_repository_inside_untracked_directory(repo, run):

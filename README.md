@@ -168,7 +168,7 @@ error instead of being skipped.
 | git not installed | clear error, exit 1 |
 | Nothing to clean | no prompt, `action: clean`, exit 0 |
 | Run from a subdirectory | `clean` only affects that directory (same as git) |
-| Nested repo inside an untracked directory | kept, and listed under `skipped_repositories` |
+| Nested git repository (top level or inside an untracked directory) | kept, and listed under `skipped_repositories` |
 | Non-UTF-8 file names | handled internally without loss; shown with `�` in YAML |
 | Non-UTF-8 terminal (e.g. Windows code pages) | output forced to UTF-8 |
 

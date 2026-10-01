@@ -3,6 +3,9 @@
 A safer wrapper around common git commands, with a `--dry-run` mode and
 machine-readable YAML output.
 
+For a file-by-file walkthrough of the code and the reasoning behind it, see
+[docs/HOW_IT_WORKS.md](docs/HOW_IT_WORKS.md).
+
 ## Install & run
 
 Requires Python 3.10+ and git.

@@ -1,15 +1,22 @@
 import pytest
 
-from gitwrap.clean import _batches, describe, parse_clean_preview, unquote_c_style
+from gitwrap.clean import (CleanPlan, _batches, describe, parse_clean_preview,
+                           unquote_c_style)
 
 
 def test_parses_would_remove_lines():
     text = "Would remove tmp/debug.log\nWould remove out/\nWould remove a b.txt\n"
-    assert parse_clean_preview(text) == ["tmp/debug.log", "out/", "a b.txt"]
+    assert parse_clean_preview(text).remove == ["tmp/debug.log", "out/", "a b.txt"]
+
+
+def test_skipped_nested_repositories_are_reported_not_removed():
+    plan = parse_clean_preview("Would remove a.txt\nWould skip repository vendor/lib\n")
+    assert plan.remove == ["a.txt"]
+    assert plan.skipped_repos == ["vendor/lib"]
 
 
 def test_empty_preview_means_nothing_to_clean():
-    assert parse_clean_preview("") == []
+    assert parse_clean_preview("") == CleanPlan()
 
 
 def test_unexpected_output_is_an_error():

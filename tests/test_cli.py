@@ -122,6 +122,19 @@ def test_clean_skips_nested_repositories(repo, run):
     assert (nested / "important.txt").exists()
 
 
+def test_clean_reports_nested_repository_inside_untracked_directory(repo, run):
+    """git prints `Would skip repository vendor/lib` here (found via the demo repo)."""
+    nested = repo / "vendor" / "lib"
+    nested.mkdir(parents=True)
+    git("-C", str(nested), "init", "-q")
+    make_untracked(repo, "vendor/lib/important.txt", "stray.txt")
+    code, out, _ = run("clean", "--yes")
+    assert code == 0
+    assert yaml.safe_load(out) == {"action": "clean", "files": ["stray.txt"],
+                                   "skipped_repositories": ["vendor/lib"]}
+    assert (nested / "important.txt").exists()
+
+
 def test_clean_only_affects_current_directory(repo, run, monkeypatch):
     make_untracked(repo, "top.txt", "sub/inner.txt")
     (repo / "sub" / "keep.txt").write_text("x")
@@ -147,7 +160,7 @@ def test_execute_deletes_only_planned_paths(repo):
     make_untracked(repo, "[ab].txt")
     planned = clean.plan_clean()
     make_untracked(repo, "a.txt", "late.txt")
-    clean.execute_clean(planned)
+    clean.execute_clean(planned.remove)
     assert not (repo / "[ab].txt").exists()
     assert (repo / "a.txt").exists() and (repo / "late.txt").exists()
 

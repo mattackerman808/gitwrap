@@ -107,15 +107,15 @@ Get the status, build the report, render it as YAML, write it to stdout.
 ### `run_clean()`: the main safety logic
 
 ```python
-paths = plan_clean()                         # ask git what it WOULD delete
-if args.dry_run or not paths:                # dry-run, or nothing to do
+plan = plan_clean()                          # ask git what it WOULD delete
+if args.dry_run or not plan.remove:          # dry-run, or nothing to do
     print YAML; return 0                     #   → never prompt
 if not args.yes:
     if not sys.stdin.isatty():               # no human to ask
         error "...use --yes"; return 1
-    if not confirm_deletion(paths):          # human said no
+    if not confirm_deletion(plan):           # human said no
         error "aborted"; return 1
-execute_clean(paths)                         # delete EXACTLY that list
+execute_clean(plan.remove)                   # delete EXACTLY that list
 print YAML; return 0
 ```
 
@@ -256,10 +256,23 @@ which brings two problems:
 - the message is translated → handled by `LC_ALL=C`;
 - special file names are escaped → handled by `unquote_c_style`.
 
-### `parse_clean_preview()`
+### `parse_clean_preview()` and `CleanPlan`
 
-Each line must start with `"Would remove "`. Anything else raises an error
-instead of being skipped, the same "never guess" rule as `status.py`.
+The result is a `CleanPlan` dataclass with two lists. Each line of git's
+output must be one of two kinds:
+
+- `Would remove <path>` → `plan.remove`, the paths that will be deleted.
+- `Would skip repository <path>` → `plan.skipped_repos`. git prints this for a
+  nested repository inside an untracked directory (e.g. `vendor/lib` inside
+  `vendor/`). git keeps it, and the directories around it, so gitwrap never
+  deletes it either; it is reported under `skipped_repositories` so the user
+  can see what was left alone.
+
+Anything else raises an error instead of being skipped, the same "never guess"
+rule as `status.py`. That rule is how the second line type was found: the
+first version only knew `Would remove`, and running it on the demo repository
+stopped with "unexpected `git clean -n` output" instead of doing something
+wrong.
 
 ### `unquote_c_style()`
 
@@ -314,8 +327,10 @@ that no paths are lost.
 
 `describe()` builds the prompt text. Directory paths end in `/`, so they're
 counted separately ("3 untracked files and 1 directory"), and plurals are
-handled. `clean_report()` returns `{"action": "clean", "files": [...]}`, the
-same shape for dry runs and real runs; only the `dry_run: true` line differs.
+handled. `clean_report()` returns `{"action": "clean", "files": [...],
+"skipped_repositories": [...]}`, the same shape for dry runs and real runs;
+only the `dry_run: true` line differs. When nothing is skipped, the
+`skipped_repositories` key is left out like any other empty list.
 
 ## 7. `output.py`: writing YAML
 

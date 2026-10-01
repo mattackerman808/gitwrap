@@ -8,10 +8,15 @@
             delete is therefore never removed by surprise.
 """
 
+from dataclasses import dataclass, field
+
 from gitwrap.git import decode, run_git
 
 PREVIEW_ARGS = ["clean", "-n", "-d"]
-_PREVIEW_PREFIX = "Would remove "
+_REMOVE_PREFIX = "Would remove "
+# Printed for a nested repository inside an untracked directory. git keeps it
+# (and the directories containing it); we report it but never delete it.
+_SKIP_PREFIX = "Would skip repository "
 # Stay well under the Windows command-line limit (~32k chars).
 _MAX_ARGS_CHARS = 8000
 
@@ -19,20 +24,29 @@ _C_ESCAPES = {"a": 7, "b": 8, "t": 9, "n": 10, "v": 11, "f": 12, "r": 13,
               '"': ord('"'), "\\": ord("\\")}
 
 
+@dataclass
+class CleanPlan:
+    remove: list = field(default_factory=list)          # paths to delete
+    skipped_repos: list = field(default_factory=list)   # nested repos git keeps
+
+
 def plan_clean(cwd=None):
-    """Return the paths `git clean -fd` would remove, relative to cwd."""
+    """Return what `git clean -fd` would do, with paths relative to cwd."""
     return parse_clean_preview(decode(run_git(PREVIEW_ARGS, cwd)))
 
 
 def parse_clean_preview(text):
-    paths = []
+    plan = CleanPlan()
     for line in text.splitlines():
         if not line:
             continue
-        if not line.startswith(_PREVIEW_PREFIX):
+        if line.startswith(_REMOVE_PREFIX):
+            plan.remove.append(unquote_c_style(line[len(_REMOVE_PREFIX):]))
+        elif line.startswith(_SKIP_PREFIX):
+            plan.skipped_repos.append(unquote_c_style(line[len(_SKIP_PREFIX):]))
+        else:
             raise ValueError(f"unexpected `git clean -n` output: {line!r}")
-        paths.append(unquote_c_style(line[len(_PREVIEW_PREFIX):]))
-    return paths
+    return plan
 
 
 def unquote_c_style(text):
@@ -88,5 +102,6 @@ def describe(paths):
     return summary
 
 
-def clean_report(paths):
-    return {"action": "clean", "files": paths}
+def clean_report(plan):
+    return {"action": "clean", "files": plan.remove,
+            "skipped_repositories": plan.skipped_repos}

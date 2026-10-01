@@ -70,29 +70,32 @@ def run_status(args):
 
 
 def run_clean(args):
-    paths = plan_clean()
-    if args.dry_run or not paths:
-        sys.stdout.write(render(clean_report(paths), dry_run=args.dry_run))
+    plan = plan_clean()
+    if args.dry_run or not plan.remove:
+        sys.stdout.write(render(clean_report(plan), dry_run=args.dry_run))
         return EXIT_OK
     if not args.yes:
         if not sys.stdin.isatty():
             _error("refusing to delete files without confirmation: stdin is not "
                    "a terminal. Re-run with --yes, or use --dry-run to preview.")
             return EXIT_ERROR
-        if not confirm_deletion(paths):
+        if not confirm_deletion(plan):
             _error("aborted; nothing was deleted")
             return EXIT_ERROR
-    execute_clean(paths)
-    sys.stdout.write(render(clean_report(paths)))
+    execute_clean(plan.remove)
+    sys.stdout.write(render(clean_report(plan)))
     return EXIT_OK
 
 
-def confirm_deletion(paths):
+def confirm_deletion(plan):
     """Show what will be deleted and ask. Anything but y/yes means no."""
+    paths = plan.remove
     for path in paths[:_MAX_PATHS_SHOWN]:
         print(f"  {path}", file=sys.stderr)
     if len(paths) > _MAX_PATHS_SHOWN:
         print(f"  ... and {len(paths) - _MAX_PATHS_SHOWN} more", file=sys.stderr)
+    for repo in plan.skipped_repos:
+        print(f"  (keeping nested repository {repo})", file=sys.stderr)
     sys.stderr.write(f"This will delete {describe(paths)}. Continue? [y/N]: ")
     sys.stderr.flush()
     answer = sys.stdin.readline()  # returns "" on EOF (Ctrl-D), treated as no

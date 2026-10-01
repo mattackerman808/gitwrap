@@ -35,6 +35,8 @@ action: clean
 files:
   - out/
   - tmp/debug.log
+skipped_repositories:      # nested repos are never deleted; shown for visibility
+  - vendor/lib
 
 $ gitwrap clean
   out/
@@ -56,6 +58,20 @@ or `gitwrap clean --dry-run`).
 | 0         | success                                                   |
 | 1         | error (not a repo, git missing, git failed) or aborted    |
 | 2         | usage error (unknown command or flag)                     |
+
+## Try it
+
+`scripts/demo-repo.sh` builds a throwaway repository next to this one
+(`../gitwrap-demo`) with staged, unstaged and untracked files, awkward file
+names, an ignored file and a nested repository. Run it again to rebuild the
+repo after a `gitwrap clean`.
+
+```bash
+scripts/demo-repo.sh && cd ../gitwrap-demo
+gitwrap status
+gitwrap clean --dry-run
+gitwrap clean
+```
 
 ## Tests
 
@@ -152,6 +168,7 @@ error instead of being skipped.
 | git not installed | clear error, exit 1 |
 | Nothing to clean | no prompt, `action: clean`, exit 0 |
 | Run from a subdirectory | `clean` only affects that directory (same as git) |
+| Nested repo inside an untracked directory | kept, and listed under `skipped_repositories` |
 | Non-UTF-8 file names | handled internally without loss; shown with `�` in YAML |
 | Non-UTF-8 terminal (e.g. Windows code pages) | output forced to UTF-8 |
 

@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "gitwrap"
-version = "0.1.0"
+dynamic = ["version"]  # single source of truth: gitwrap.__version__
 description = "A safer git CLI wrapper with dry-run and YAML output"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = ["PyYAML>=6.0"]
 
 [project.optional-dependencies]
@@ -15,6 +15,9 @@ test = ["pytest>=7"]
 
 [project.scripts]
 gitwrap = "gitwrap.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "gitwrap.__version__" }
 
 [tool.setuptools.packages.find]
 where = ["src"]

@@ -5,7 +5,7 @@ machine-readable YAML output.
 
 ## Install & run
 
-Requires Python 3.9+ and git.
+Requires Python 3.10+ and git.
 
 ```bash
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
@@ -64,6 +64,24 @@ Unit tests cover the parsers and YAML rendering using fixed input. Integration
 tests (`tests/test_cli.py`) create real throwaway repositories in a temp
 directory with the user's git config isolated, so results don't depend on the
 machine.
+
+CI (`.github/workflows/ci.yml`) runs the suite on Linux, macOS and Windows
+against the oldest and newest supported Python on every push and pull request.
+
+## Releasing
+
+1. Bump `__version__` in `src/gitwrap/__init__.py` (the only place the
+   version lives) and commit.
+2. Tag and push:
+   ```bash
+   git tag v0.2.0 && git push origin v0.2.0
+   ```
+3. `.github/workflows/release.yml` re-runs the full test matrix, checks that the
+   tag matches `__version__`, builds `gitwrap-v0.2.0.zip` plus a SHA-256
+   checksum, and publishes both to a GitHub Release.
+
+To build the zip locally: `scripts/package.sh v0.2.0` (or `scripts/package.sh`
+for HEAD). It uses `git archive`, so only committed files are included.
 
 ## Layout
 

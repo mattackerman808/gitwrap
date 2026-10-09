@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Create a throwaway repository that shows off gitwrap's edge cases.
 #
-#   scripts/demo-repo.sh [path]      (default: ../gitwrap-demo)
+#   scripts/demo-repo.sh [path]      (default: gitwrap-demo next to this checkout)
 #
 # Re-running rebuilds it from scratch, so you can try `gitwrap clean` again.
 set -euo pipefail
 
-dir="${1:-../gitwrap-demo}"
+dir="${1:-$(cd "$(dirname "$0")/../.." && pwd)/gitwrap-demo}"
 marker=".gitwrap-demo"
 
 if [ -e "$dir" ]; then

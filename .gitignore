@@ -6,3 +6,6 @@ build/
 dist/
 .idea/
 .vscode/
+
+# Throwaway repo from scripts/demo-repo.sh, if built inside the checkout
+gitwrap-demo/
